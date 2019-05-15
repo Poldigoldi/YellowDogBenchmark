@@ -1,7 +1,7 @@
 import java.io.*;
 import java.util.ArrayList;
 
-public class ReportMaker {
+public class Report {
     public static void main(String[] args) throws IOException {
         File report = new File("report.txt");
         BufferedWriter bw = new BufferedWriter(new FileWriter(report));

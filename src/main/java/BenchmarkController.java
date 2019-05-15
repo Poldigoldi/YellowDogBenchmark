@@ -76,20 +76,6 @@ public class BenchmarkController {
             client.startTransfers();
             client.setUserCredential("0000");
 
-            /*PROVISION POOL*/
-//            System.out.println("\n2. Provisioning worker pool...");
-//
-//            ComputeRequirement computeRequirement = ComputeRequirement.builder()
-//                    .namespace("Benchmark")
-//                    .name("WorkerPool_".concat(UUID.randomUUID().toString()))
-//                    .instanceCount(4)
-//                    .provisionStrategy()
-//                    .build();
-//            ComputeRequirement submittedComputeRequirement = client.provisionWorkerPool(computeRequirement);
-//
-//            // add a listener so we can see how the Scheduler manages the compute requirement
-//            client.addComputeRequirementListener(submittedComputeRequirement, BenchmarkController::outputRequirement);
-
 
             /*WORK REQUIREMENT*/
             String workReqId = "WorkReq_".concat(UUID.randomUUID().toString());
@@ -124,6 +110,7 @@ public class BenchmarkController {
 
             /*DOWNLOAD FROM OBJECT STORE*/
             Path destinationFolderPath = FileSystems.getDefault().getPath("output");
+            /*1*/
             DownloadBatch downloadBatch = client.buildDownloadBatch()
                     .destinationFolder(destinationFolderPath)
                     .sourceObjects("Benchmark", String.format("%s/**/vRay/*.*", workReqId))
@@ -140,6 +127,7 @@ public class BenchmarkController {
                     formatBinaryValue(downloadStatistics.getBytesTransferred(), BinaryUnit.BYTE),
                     formatBinaryValue(downloadStatistics.getTransferSpeedBitsPerSecond(), BinaryUnit.BIT)));
 
+
             /*REPORTMAKER*/
             createReport();
 
@@ -154,7 +142,7 @@ public class BenchmarkController {
         File report = new File("report.txt");
         BufferedWriter bw = new BufferedWriter(new FileWriter(report));
         String st;
-        String dateTime = "", CPUScore = "", GPUScore = "";
+        String dateTime, CPUScore, GPUScore;
 
         bw.write("Date            CPU Score               GPU Score\n\n");
 
