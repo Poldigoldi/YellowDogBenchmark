@@ -1,3 +1,0 @@
-Date            CPU Score               GPU Score
-
-[Apr 19 2019 07:48:46, 0V-Ray score: 1070 ksamples]

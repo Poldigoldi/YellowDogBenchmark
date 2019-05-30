@@ -4,6 +4,7 @@ import co.yellowdog.services.objectstore.client.TransferStatus;
 import co.yellowdog.services.objectstore.client.download.DownloadBatch;
 import co.yellowdog.services.objectstore.client.shared.TransferStatistics;
 import co.yellowdog.util.BinaryUnit;
+import co.yellowdog.util.CollectionUtils;
 
 import java.io.*;
 import java.nio.file.FileSystems;
@@ -76,52 +77,39 @@ public class BenchmarkController {
             client.startTransfers();
             client.setUserCredential("0000");
 
+            int numOfAgents=3;
+            ArrayList<TaskGroup> taskGroups = new ArrayList<>();
+
+            for (int i=0; i<numOfAgents; i++) {
+                taskGroups.add(TaskGroup.builder()
+                        .name(Integer.toString(i))
+                        .runSpecification(RunSpecification.builder()
+                                .runType(TaskRunType.BATCH)
+                                .taskType("docker")
+                                .minimumQueueConcurrency(1)
+                                .idealQueueConcurrency(1)
+                                .maximumTaskRetries(3)
+                                .machineConfiguration(MachineConfiguration.builder()
+                                        .instanceType(Integer.toString(i))
+                                        .imageId("-")
+                                        .build())
+                                .build())
+                        .task(Task.builder()
+                                .name("vRay")
+                                .taskType("docker")
+                                .initData("-e 'INSTANCE=" + i + "' poldigoldi/bm_30th_may_new_vray:1.0.0")
+                                .outputFromWorkerDirectory("bm_output_" + i + ".txt")
+                                .outputFromTaskProcess()
+                                .build())
+                        .build());
+            }
 
             /*WORK REQUIREMENT*/
             String workReqId = "WorkReq_".concat(UUID.randomUUID().toString());
             WorkRequirement workRequirement = WorkRequirement.builder()
                     .namespace("Benchmark")
                     .name(workReqId)
-                    .taskGroup(TaskGroup.builder()
-                            .name("1")
-                            .runSpecification(RunSpecification.builder()
-                                    .runType(TaskRunType.BATCH)
-                                    .taskType("docker")
-                                    .minimumQueueConcurrency(1)
-                                    .idealQueueConcurrency(1)
-                                    .machineConfiguration(MachineConfiguration.builder()
-                                            .instanceType("firstInstance")
-                                            .imageId("-")
-                                            .build())
-                                    .build())
-                            .task(Task.builder()
-                                    .name("vRay")
-                                    .taskType("docker")
-                                    .initData("-e 'INSTANCE=1' poldigoldi/30th_may_withenv:1.0.0")
-                                    .outputFromWorkerDirectory("bm_output_1.txt")
-                                    .outputFromTaskProcess()
-                                    .build())
-                            .build())
-                    .taskGroup(TaskGroup.builder()
-                            .name("2")
-                            .runSpecification(RunSpecification.builder()
-                                    .runType(TaskRunType.BATCH)
-                                    .taskType("docker")
-                                    .minimumQueueConcurrency(1)
-                                    .idealQueueConcurrency(1)
-                                    .machineConfiguration(MachineConfiguration.builder()
-                                            .instanceType("secondInstance")
-                                            .imageId("-")
-                                            .build())
-                                    .build())
-                            .task(Task.builder()
-                                    .name("vRay")
-                                    .taskType("docker")
-                                    .initData("-e 'INSTANCE=2' poldigoldi/30th_may_withenv:1.0.0")
-                                    .outputFromWorkerDirectory("bm_output_2.txt")
-                                    .outputFromTaskProcess()
-                                    .build())
-                            .build())
+                    .taskGroups(taskGroups)
                     .build();
 
             WorkRequirement submittedWorkRequirement = client.submitWorkRequirement(workRequirement);
