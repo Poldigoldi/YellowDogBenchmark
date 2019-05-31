@@ -4,7 +4,13 @@ import co.yellowdog.services.objectstore.client.TransferStatus;
 import co.yellowdog.services.objectstore.client.download.DownloadBatch;
 import co.yellowdog.services.objectstore.client.shared.TransferStatistics;
 import co.yellowdog.util.BinaryUnit;
-import co.yellowdog.util.CollectionUtils;
+
+import java.io.FileReader;
+import java.util.Map;
+
+import org.apache.commons.io.FilenameUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.*;
 
 import java.io.*;
 import java.nio.file.FileSystems;
@@ -77,7 +83,7 @@ public class BenchmarkController {
             client.startTransfers();
             client.setUserCredential("0000");
 
-            int numOfAgents=3;
+            int numOfAgents = 2;
             ArrayList<TaskGroup> taskGroups = new ArrayList<>();
 
             for (int i=0; i<numOfAgents; i++) {
@@ -88,7 +94,7 @@ public class BenchmarkController {
                                 .taskType("docker")
                                 .minimumQueueConcurrency(1)
                                 .idealQueueConcurrency(1)
-                                .maximumTaskRetries(3)
+                                .maximumTaskRetries(5)
                                 .machineConfiguration(MachineConfiguration.builder()
                                         .instanceType(Integer.toString(i))
                                         .imageId("-")
@@ -97,8 +103,8 @@ public class BenchmarkController {
                         .task(Task.builder()
                                 .name("vRay")
                                 .taskType("docker")
-                                .initData("-e 'INSTANCE=" + i + "' poldigoldi/bm_30th_may_new_vray:1.0.0")
-                                .outputFromWorkerDirectory("bm_output_" + i + ".txt")
+                                .initData("-e 'INSTANCE=" + i + "' poldigoldi/bm_with_jsonformat_mode_vray:1.0.0")
+                                .outputFromWorkerDirectory("bm_output_" + i + ".json")
                                 .outputFromTaskProcess()
                                 .build())
                         .build());
@@ -125,7 +131,7 @@ public class BenchmarkController {
             /*1*/
             DownloadBatch downloadBatch = client.buildDownloadBatch()
                     .destinationFolder(destinationFolderPath)
-                    .sourceObjects("Benchmark", String.format("%s/**/vRay/bm_output_*.txt", workReqId))
+                    .sourceObjects("Benchmark", String.format("%s/**/vRay/bm_output_*.json", workReqId))
                     .flattenFilePaths(FlattenPath.FILE_NAME_ONLY)
                     .buildIfObjectsFound()
                     .orElseThrow(() -> new RuntimeException("Could not find benchmark outputs in object store"));
@@ -150,41 +156,26 @@ public class BenchmarkController {
     }
 
 
-    private static void createReport() throws IOException {
+    private static void createReport() throws IOException, ParseException {
         File report = new File("report.txt");
         BufferedWriter bw = new BufferedWriter(new FileWriter(report));
-        String st;
-        String dateTime, CPUScore, GPUScore;
 
         bw.write("Date            CPU Score               GPU Score\n\n");
 
         File folder = new File("output");
         File[] listOfFiles = folder.listFiles();
-        String filename;
 
         if (listOfFiles != null && listOfFiles.length > 0) {
-            for (File listOfFile : listOfFiles) {
-                if (listOfFile.isFile()) {
-                    ArrayList<String> benchmarkInfo = new ArrayList<>();
-                    filename = listOfFile.getName();
-                    File file = new File("output/" + filename);
-                    BufferedReader br = new BufferedReader(new FileReader(file));
-
-                    while ((st = br.readLine()) != null) {
-                        if (st.contains("[benchmark]")) {
-                            dateTime = st.substring(st.indexOf("]") + 2);
-                            benchmarkInfo.add(dateTime);
-                        } else if (st.contains("V-Ray score:")) {
-                            CPUScore = st.substring(st.indexOf(":") + 2);
-                            benchmarkInfo.add(CPUScore);
-                        } else if (st.contains("V-Ray GPU score:")) {
-                            GPUScore = st.substring(st.indexOf(":") + 2);
-                            benchmarkInfo.add(GPUScore);
-                        }
+            for (File file : listOfFiles) {
+                if (file.isFile() && FilenameUtils.getExtension(file.getName()).equals("json")) {
+                    Object obj = new JSONParser().parse(new FileReader(file));
+                    JSONObject jo = (JSONObject) obj;
+                    ArrayList<String> benchmarkArray = new ArrayList<>();
+                    Map benchmarks = ((Map)jo.get("benchmarks"));
+                    for (Map.Entry pair : (Iterable<Map.Entry>) benchmarks.entrySet()) {
+                        benchmarkArray.add(pair.getKey() + " : " + pair.getValue());
                     }
-                    if (benchmarkInfo.size() > 0) {
-                        bw.write(benchmarkInfo.toString() + "\n");
-                    }
+                    bw.write(benchmarkArray.toString());
                 }
             }
         }
