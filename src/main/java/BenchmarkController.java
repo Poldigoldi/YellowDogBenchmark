@@ -83,7 +83,7 @@ public class BenchmarkController {
             client.startTransfers();
             client.setUserCredential("0000");
 
-            int numOfAgents = 2;
+            int numOfAgents = 2; /*SET THE NUMBER OF RUNNING AGENTS HERE!*/
             ArrayList<TaskGroup> taskGroups = new ArrayList<>();
 
             for (int i=0; i<numOfAgents; i++) {
@@ -91,7 +91,7 @@ public class BenchmarkController {
                         .name(Integer.toString(i))
                         .runSpecification(RunSpecification.builder()
                                 .runType(TaskRunType.BATCH)
-                                .taskType("docker")
+                                .taskType("benchmark")
                                 .minimumQueueConcurrency(1)
                                 .idealQueueConcurrency(1)
                                 .maximumTaskRetries(5)
@@ -102,9 +102,8 @@ public class BenchmarkController {
                                 .build())
                         .task(Task.builder()
                                 .name("vRay")
-                                .taskType("docker")
-                                .initData("-e 'INSTANCE=" + i + "' poldigoldi/bm_with_jsonformat_mode_vray:1.0.0")
-                                .outputFromWorkerDirectory("bm_output_" + i + ".json")
+                                .taskType("benchmark")
+                                .outputFromWorkerDirectory("bm_output_"+ i + ".json")
                                 .outputFromTaskProcess()
                                 .build())
                         .build());
@@ -160,8 +159,6 @@ public class BenchmarkController {
         File report = new File("report.txt");
         BufferedWriter bw = new BufferedWriter(new FileWriter(report));
 
-        bw.write("Date            CPU Score               GPU Score\n\n");
-
         File folder = new File("output");
         File[] listOfFiles = folder.listFiles();
 
@@ -175,7 +172,7 @@ public class BenchmarkController {
                     for (Map.Entry pair : (Iterable<Map.Entry>) benchmarks.entrySet()) {
                         benchmarkArray.add(pair.getKey() + " : " + pair.getValue());
                     }
-                    bw.write(benchmarkArray.toString());
+                    bw.write(file.getName() + " : " + benchmarkArray.toString() + "\n");
                 }
             }
         }
