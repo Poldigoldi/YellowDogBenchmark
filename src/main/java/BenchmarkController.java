@@ -6,6 +6,7 @@ import co.yellowdog.services.objectstore.client.shared.TransferStatistics;
 import co.yellowdog.util.BinaryUnit;
 
 import java.io.FileReader;
+import java.sql.Timestamp;
 import java.util.Map;
 
 import org.apache.commons.io.FilenameUtils;
@@ -87,8 +88,9 @@ public class BenchmarkController {
             ArrayList<TaskGroup> taskGroups = new ArrayList<>();
 
             for (int i=0; i<numOfAgents; i++) {
+                String instance = Integer.toString(i);
                 taskGroups.add(TaskGroup.builder()
-                        .name(Integer.toString(i))
+                        .name(instance)
                         .runSpecification(RunSpecification.builder()
                                 .runType(TaskRunType.BATCH)
                                 .taskType("benchmark")
@@ -96,14 +98,15 @@ public class BenchmarkController {
                                 .idealQueueConcurrency(1)
                                 .maximumTaskRetries(5)
                                 .machineConfiguration(MachineConfiguration.builder()
-                                        .instanceType(Integer.toString(i))
+                                        .instanceType(instance)
                                         .imageId("-")
                                         .build())
                                 .build())
                         .task(Task.builder()
                                 .name("vRay")
                                 .taskType("benchmark")
-                                .outputFromWorkerDirectory("bm_output_"+ i + ".json")
+                                .environment("INSTANCE", instance)
+                                .outputFromWorkerDirectory("bm_output_"+ instance + ".json")
                                 .outputFromTaskProcess()
                                 .build())
                         .build());
@@ -146,8 +149,11 @@ public class BenchmarkController {
 
 
             /*REPORTMAKER*/
-            createReport();
-
+            if (downloadStatistics.getBytesTransferred() > 0) {
+                createReport();
+            } else {
+                System.out.println("No report created. Reason: no data was downloaded.");
+            }
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -162,17 +168,38 @@ public class BenchmarkController {
         File folder = new File("output");
         File[] listOfFiles = folder.listFiles();
 
+        Timestamp reportCreationDate = new Timestamp(System.currentTimeMillis());
+        bw.write("Benchmark report from " + reportCreationDate + "\n\n");
+
+        String headers = String.format("%-20s %-10s %-30s %-50s", "Filename", "cpuScore", "OS", "CPUs");
+        bw.write(headers + "\n");
+        for (int i=0; i<headers.length(); i++) {
+            bw.write("-");
+        }
+        bw.write("\n");
+
         if (listOfFiles != null && listOfFiles.length > 0) {
             for (File file : listOfFiles) {
                 if (file.isFile() && FilenameUtils.getExtension(file.getName()).equals("json")) {
                     Object obj = new JSONParser().parse(new FileReader(file));
                     JSONObject jo = (JSONObject) obj;
+
                     ArrayList<String> benchmarkArray = new ArrayList<>();
                     Map benchmarks = ((Map)jo.get("benchmarks"));
                     for (Map.Entry pair : (Iterable<Map.Entry>) benchmarks.entrySet()) {
-                        benchmarkArray.add(pair.getKey() + " : " + pair.getValue());
+                        benchmarkArray.add(pair.getValue().toString());
                     }
-                    bw.write(file.getName() + " : " + benchmarkArray.toString() + "\n");
+
+                    String OS = jo.get("os").toString();
+
+                    ArrayList<String> cpusArray = new ArrayList<>();
+                    Map cpus = ((Map)jo.get("cpus"));
+                    for (Map.Entry pair : (Iterable<Map.Entry>) cpus.entrySet()) {
+                        cpusArray.add(pair.getKey() + " : " + pair.getValue());
+                    }
+
+                    String row = String.format("%-20s %-10s %-30s %-50s", file.getName(), benchmarkArray.toString(), OS, cpusArray.toString());
+                    bw.write(row + "\n");
                 }
             }
         }
