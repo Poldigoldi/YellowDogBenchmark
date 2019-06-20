@@ -19,6 +19,7 @@ https://drive.google.com/file/d/1IWUMiY6x0ZODrWDR1VnpZj_IAa6_jexF/view?usp=shari
 Once finished you can start the VM.
 6. Configure the network as explained here:
 https://www.tecmint.com/network-between-guest-vm-and-host-virtualbox/
+7. Update the schema url to use your network IP in /opt/agent/application.yaml
 
 
 You can now run the benchmark app by following these steps:
@@ -47,4 +48,23 @@ If you want to add more VMs with agents you need to do the following:
 	6. Reboot
     7. Match numOfAgents in benchmark.java
 
+
+
+
+
+
+ADDITIONAL INFORMATION:
+
+
+Setup of VM:
+
+To setup the virtual machine CentOS was chosen. Reason for this is that vray-benchmark suggests using this OS.
+The minimal ISO was downloaded as desktop usage is not necessary. The agent folder was added to the VM via the
+ssh scp command and stored under /opt/
+The application.yaml needed the following changes to work on the VM:
+    - A tasktype called "benchmark" was added
+    - A runcommand file called "benchmark.sh" was added with the following content
+        eval /opt/vray-benchmark-4.10.06 --mode vray --quiet -o /opt/agent/workers/1/bm_output.json
+    - As of now the first worker path is hard coded (however the benchmarking system should only ever run one worker)
+    - Changed the schema-default-url to http://192.168.99.1 (or whatever your local network IP address is)
 
