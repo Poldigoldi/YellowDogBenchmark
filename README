@@ -64,7 +64,32 @@ ssh scp command and stored under /opt/
 The application.yaml needed the following changes to work on the VM:
     - A tasktype called "benchmark" was added
     - A runcommand file called "benchmark.sh" was added with the following content
-        eval /opt/vray-benchmark-4.10.06 --mode vray --quiet -o /opt/agent/workers/1/bm_output.json
+        eval /opt/vray-benchmark-4.10.06 --mode vray --quiet -o /opt/agent/workers/1/bm_output_${INSTANCE}.json
+    - The environment variable is created with the task groups and set when the work requirement is submitted.
     - As of now the first worker path is hard coded (however the benchmarking system should only ever run one worker)
     - Changed the schema-default-url to http://192.168.99.1 (or whatever your local network IP address is)
+    - Need to imcrement the instance-type id for each VM, starting with 0.
+
+
+BenchmarkController:
+
+A for loop creates a task group based on the number of agent set above. The iteration 'i' aligns with the instance
+type and therefore it is important that the instance type for each agent is set in the application.yaml.
+The instance value is passed to the agent using an environment variable. This variable is mainly used to
+distinguish the output files created by vray-benchmark. Once the test has finished the json output files are
+uploaded to the object store. If the size of the uploaded files is greater than 0 (ie something was uploaded
+successfully) then the program creates a summary report of the benchmark data.
+This is done in the createReport() method. All files with the filename pattern bm_output_*.json are
+downloaded and subsequently compiled into a readable report summary, which in turn is exported as report.txt in
+the root directory.
+
+Example of a Benchmark Summary Report of two instances:
+
+
+Benchmark report from 2019-06-20 10:56:04.935
+
+Filename             cpuScore   OS                             CPUs
+-----------------------------------------------------------------------------------------------------------------
+bm_output_0.json     [51]       Linux 3.10.0-957.el7.x86_64    [Intel(R) Core(TM) i7-3520M CPU @ 2.90GHz : 1]
+bm_output_1.json     [55]       Linux 3.10.0-957.el7.x86_64    [Intel(R) Core(TM) i7-3520M CPU @ 2.90GHz : 1]
 
