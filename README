@@ -43,7 +43,6 @@ If you want to add more VMs with agents you need to do the following:
 	https://www.tecmint.com/network-between-guest-vm-and-host-virtualbox/
 	3. SSH into VM root@NEW_IP_ADDRESS with password "yellowdog"
 	4. Execute "sudo vi /opt/agent/application.yaml"
-
 	5. Increment instance-type, save and exit.
 	6. Reboot
     7. Match numOfAgents in benchmark.java
