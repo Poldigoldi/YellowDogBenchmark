@@ -1,0 +1,6 @@
+Benchmark report from 2019-06-20 10:56:04.935
+
+Filename             cpuScore   OS                             CPUs                                              
+-----------------------------------------------------------------------------------------------------------------
+bm_output_0.json     [51]       Linux 3.10.0-957.el7.x86_64    [Intel(R) Core(TM) i7-3520M CPU @ 2.90GHz : 1]    
+bm_output_1.json     [55]       Linux 3.10.0-957.el7.x86_64    [Intel(R) Core(TM) i7-3520M CPU @ 2.90GHz : 1]    
